@@ -1,0 +1,41 @@
+# Ignorer les dépendances Node.js
+node_modules/
+
+# Ignorer les fichiers générés par TypeScript
+lib/
+
+# Ignorer les fichiers d'environnement sensibles
+.env
+
+# Ignorer les fichiers Docker générés
+docker-compose.override.yml
+docker-compose.yaml
+
+# Ignorer les fichiers logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Ignorer les fichiers et dossiers système
+.DS_Store
+Thumbs.db
+
+# Ignorer les sorties des compilateurs
+*.tsbuildinfo
+
+# Ignorer les fichiers générés par TypeORM
+src/model/index.ts
+src/migration/
+
+# Ignorer les fichiers générés par squid utils
+src/abi/usdt.ts
+
+# Ignorer les sorties de cache de l'IDE
+.idea/
+.vscode/
+*.swp
+
+# Ignorer les fichiers de débogage
+*.bak
+*.tmp
