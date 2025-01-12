@@ -4,6 +4,7 @@ import * as usdtAbi from './abi/usdt'; // ABI générée par squid-evm-typegen
 import { Token, Transfer, TokenBalance, Metric } from './model';
 import { Contract } from './abi/usdt'; // Classe Contract générée par squid-evm-typegen
 import { Not } from 'typeorm';
+import 'dotenv/config';
 
 const USDT_CONTRACT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
 
