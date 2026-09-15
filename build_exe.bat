@@ -37,18 +37,3 @@ echo.
 echo Une erreur est survenue pendant la creation.
 pause
 exit /b 1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
