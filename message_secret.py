@@ -3,46 +3,61 @@ from tkinter import messagebox
 import random
 import string
 
+
 # ============================================================
 # CONFIGURATION
 # ============================================================
 
 CAESAR_KEY = 7
+APP_TITLE = "🤫"
 
-APP_TITLE = "CIPHER // TERMINAL"
+# Palette principale
+BG = "#FFF7F2"
+CARD = "#FFFFFF"
+INPUT_BG = "#FFFDFC"
 
-BG = "#0d1117"
-CARD = "#161b22"
-INPUT_BG = "#21262d"
-TEXT = "#f0f6fc"
-SECONDARY = "#8b949e"
-ACCENT = "#58a6ff"
-GREEN = "#3fb950"
-BORDER = "#30363d"
+TEXT = "#3D3442"
+SECONDARY = "#8A788F"
+
+ACCENT = "#F06C9B"
+ACCENT_HOVER = "#E85B8F"
+
+BORDER = "#EADDE5"
+
+# Partie secrète / sombre
+SECRET_BG = "#302A33"
+SECRET_HOVER = "#463D49"
+SECRET_TEXT = "#FFFFFF"
 
 
 # ============================================================
-# CHIFFREMENT CÉSAR
+# DÉCHIFFREMENT CÉSAR
 # ============================================================
 
 def caesar_decrypt(text, shift):
+
     result = ""
 
     for char in text:
 
         if "A" <= char <= "Z":
+
             result += chr(
-                (ord(char) - ord("A") - shift) % 26 + ord("A")
+                (ord(char) - ord("A") - shift) % 26
+                + ord("A")
             )
 
         elif "a" <= char <= "z":
+
             result += chr(
-                (ord(char) - ord("a") - shift) % 26 + ord("a")
+                (ord(char) - ord("a") - shift) % 26
+                + ord("a")
             )
 
         else:
-            # Accents, chiffres, espaces et ponctuation
-            # restent inchangés
+
+            # Accents, chiffres, ponctuation et emojis
+            # restent inchangés.
             result += char
 
     return result
@@ -52,18 +67,30 @@ def caesar_decrypt(text, shift):
 # APPLICATION
 # ============================================================
 
-class CipherTerminal:
+class SecretMessageApp:
 
     def __init__(self, root):
 
         self.root = root
 
         root.title(APP_TITLE)
-        root.geometry("720x620")
-        root.minsize(650, 580)
-        root.configure(bg=BG)
+        root.geometry("760x650")
+        root.minsize(680, 600)
+
+        root.configure(
+            bg=BG
+        )
 
         self.animation_running = False
+
+        # Message actuellement affiché
+        self.displayed_text = ""
+
+        # Vrai message déchiffré
+        self.final_message = ""
+
+        # État caché / visible
+        self.message_hidden = False
 
         self.create_ui()
 
@@ -74,37 +101,25 @@ class CipherTerminal:
 
     def create_ui(self):
 
-        # TITRE
+        # ----------------------------------------------------
+        # EMOJI
+        # ----------------------------------------------------
 
-        title = tk.Label(
+        emoji = tk.Label(
             self.root,
-            text="CIPHER // TERMINAL",
+            text="🤫",
             bg=BG,
-            fg=TEXT,
-            font=("Segoe UI", 25, "bold")
+            font=("Segoe UI Emoji", 42)
         )
 
-        title.pack(
-            pady=(30, 4)
-        )
-
-
-        subtitle = tk.Label(
-            self.root,
-            text="Secure Message Decoder",
-            bg=BG,
-            fg=SECONDARY,
-            font=("Consolas", 10)
-        )
-
-        subtitle.pack(
-            pady=(0, 25)
+        emoji.pack(
+            pady=(18, 10)
         )
 
 
-        # ====================================================
-        # CARTE
-        # ====================================================
+        # ----------------------------------------------------
+        # CARTE PRINCIPALE
+        # ----------------------------------------------------
 
         self.card = tk.Frame(
             self.root,
@@ -114,8 +129,8 @@ class CipherTerminal:
         )
 
         self.card.pack(
-            padx=40,
-            pady=10,
+            padx=45,
+            pady=(0, 22),
             fill="both",
             expand=True
         )
@@ -127,116 +142,361 @@ class CipherTerminal:
 
         input_label = tk.Label(
             self.card,
-            text="MESSAGE ENCRYPTED",
+            text="Colle ton message codé ici",
             bg=CARD,
-            fg=SECONDARY,
-            font=("Consolas", 10, "bold")
+            fg=TEXT,
+            font=("Segoe UI", 11, "bold")
         )
 
         input_label.pack(
             anchor="w",
-            padx=25,
-            pady=(25, 8)
+            padx=30,
+            pady=(22, 8)
         )
 
 
-        self.input_text = tk.Text(
+        # ----------------------------------------------------
+        # CONTENEUR DU CHAMP
+        # ----------------------------------------------------
+
+        self.input_container = tk.Frame(
             self.card,
-            height=7,
             bg=INPUT_BG,
-            fg=TEXT,
-            insertbackground=TEXT,
-            relief="flat",
-            font=("Consolas", 12),
-            wrap="word",
-            padx=15,
-            pady=15
+            highlightbackground=BORDER,
+            highlightthickness=1
         )
 
-        self.input_text.pack(
-            padx=25,
+        self.input_container.pack(
+            padx=30,
             fill="x"
         )
 
 
+        # ----------------------------------------------------
+        # SCROLLBAR DU CHAMP
+        #
+        # Créée mais PAS affichée au départ.
+        # ----------------------------------------------------
+
+        self.input_scrollbar = tk.Scrollbar(
+            self.input_container,
+            orient="vertical"
+        )
+
+
+        # ----------------------------------------------------
+        # CHAMP ÉDITABLE
+        # ----------------------------------------------------
+
+        self.input_text = tk.Text(
+            self.input_container,
+            height=5,
+            bg=INPUT_BG,
+            fg=TEXT,
+            insertbackground=TEXT,
+            relief="flat",
+            borderwidth=0,
+            font=("Consolas", 12),
+            wrap="word",
+            padx=15,
+            pady=12
+        )
+
+        self.input_text.pack(
+            side="left",
+            fill="both",
+            expand=True
+        )
+
+
+        # ----------------------------------------------------
+        # GESTION AUTOMATIQUE DE LA SCROLLBAR
+        # ----------------------------------------------------
+
+        self.input_text.config(
+            yscrollcommand=self.update_input_scrollbar
+        )
+
+        self.input_scrollbar.config(
+            command=self.input_text.yview
+        )
+
+
         # ====================================================
-        # BOUTON DECODE
+        # BOUTON DÉCOUVRIR
         # ====================================================
 
-        decrypt_button = tk.Button(
+        self.decrypt_button = tk.Button(
             self.card,
-            text="DECODE MESSAGE",
+            text="✨  Découvrir le message",
             command=self.start_decryption,
             bg=ACCENT,
             fg="white",
-            activebackground=ACCENT,
+            activebackground=ACCENT_HOVER,
             activeforeground="white",
             relief="flat",
             cursor="hand2",
             font=("Segoe UI", 11, "bold"),
             padx=30,
-            pady=11
+            pady=10
         )
 
-        decrypt_button.pack(
-            pady=20
+        self.decrypt_button.pack(
+            pady=(16, 15)
         )
 
 
         # ====================================================
-        # STATUT
+        # SÉPARATEUR
         # ====================================================
 
-        self.status = tk.Label(
+        separator = tk.Frame(
             self.card,
-            text="SYSTEM READY // WAITING FOR INPUT",
-            bg=CARD,
-            fg=SECONDARY,
-            font=("Consolas", 9)
+            bg=BORDER,
+            height=1
         )
 
-        self.status.pack(
+        separator.pack(
+            padx=30,
+            fill="x",
             pady=(0, 15)
         )
 
 
         # ====================================================
-        # RÉSULTAT
+        # BOUTON CACHER / REVOIR
         # ====================================================
 
-        result_label = tk.Label(
+        self.visibility_button = tk.Button(
             self.card,
-            text="DECODED MESSAGE",
-            bg=CARD,
-            fg=SECONDARY,
-            font=("Consolas", 10, "bold")
-        )
-
-        result_label.pack(
-            anchor="w",
-            padx=25,
-            pady=(5, 8)
-        )
-
-
-        self.result_text = tk.Text(
-            self.card,
-            height=7,
-            bg=INPUT_BG,
-            fg=TEXT,
-            insertbackground=TEXT,
+            text="🙈  Cacher le message",
+            command=self.toggle_message_visibility,
+            bg=SECRET_BG,
+            fg=SECRET_TEXT,
+            activebackground=SECRET_HOVER,
+            activeforeground=SECRET_TEXT,
             relief="flat",
-            font=("Segoe UI", 13),
-            wrap="word",
-            padx=15,
-            pady=15
+            cursor="hand2",
+            font=("Segoe UI", 10, "bold"),
+            padx=22,
+            pady=7
         )
 
-        self.result_text.pack(
-            padx=25,
+        # Invisible au lancement
+
+
+        # ====================================================
+        # CONTENEUR DU RÉSULTAT
+        # ====================================================
+
+        self.result_container = tk.Frame(
+            self.card,
+            bg=INPUT_BG,
+            highlightbackground=BORDER,
+            highlightthickness=1
+        )
+
+        self.result_container.pack(
+            padx=30,
+            pady=(5, 20),
             fill="both",
             expand=True
         )
+
+
+        # ----------------------------------------------------
+        # SCROLLBAR DU RÉSULTAT
+        #
+        # Créée mais invisible au départ.
+        # ----------------------------------------------------
+
+        self.result_scrollbar = tk.Scrollbar(
+            self.result_container,
+            orient="vertical"
+        )
+
+
+        # ----------------------------------------------------
+        # RÉSULTAT
+        # ----------------------------------------------------
+
+        self.result_text = tk.Text(
+            self.result_container,
+            height=8,
+            bg=INPUT_BG,
+            fg=TEXT,
+            relief="flat",
+            borderwidth=0,
+            font=("Segoe UI", 13),
+            wrap="word",
+            padx=18,
+            pady=15,
+            cursor="arrow"
+        )
+
+        self.result_text.pack(
+            side="left",
+            fill="both",
+            expand=True
+        )
+
+
+        # ----------------------------------------------------
+        # GESTION AUTOMATIQUE DE LA SCROLLBAR
+        # ----------------------------------------------------
+
+        self.result_text.config(
+            yscrollcommand=self.update_result_scrollbar
+        )
+
+        self.result_scrollbar.config(
+            command=self.result_text.yview
+        )
+
+
+        # Résultat en lecture seule
+        self.result_text.config(
+            state="disabled"
+        )
+
+
+    # ========================================================
+    # SCROLLBAR AUTOMATIQUE DU CHAMP DU HAUT
+    # ========================================================
+
+    def update_input_scrollbar(self, first, last):
+
+        first = float(first)
+        last = float(last)
+
+
+        # Met à jour la position du curseur
+        self.input_scrollbar.set(
+            first,
+            last
+        )
+
+
+        # ----------------------------------------------------
+        # Tout le texte est visible :
+        # on cache complètement la scrollbar.
+        # ----------------------------------------------------
+
+        if first <= 0.0 and last >= 1.0:
+
+            if self.input_scrollbar.winfo_ismapped():
+
+                self.input_scrollbar.pack_forget()
+
+
+        # ----------------------------------------------------
+        # Le texte dépasse :
+        # la scrollbar apparaît.
+        # ----------------------------------------------------
+
+        else:
+
+            if not self.input_scrollbar.winfo_ismapped():
+
+                self.input_scrollbar.pack(
+                    side="right",
+                    fill="y"
+                )
+
+
+    # ========================================================
+    # SCROLLBAR AUTOMATIQUE DU RÉSULTAT
+    # ========================================================
+
+    def update_result_scrollbar(self, first, last):
+
+        first = float(first)
+        last = float(last)
+
+
+        # Position du curseur
+        self.result_scrollbar.set(
+            first,
+            last
+        )
+
+
+        # ----------------------------------------------------
+        # Tout tient dans le cadre
+        # ----------------------------------------------------
+
+        if first <= 0.0 and last >= 1.0:
+
+            if self.result_scrollbar.winfo_ismapped():
+
+                self.result_scrollbar.pack_forget()
+
+
+        # ----------------------------------------------------
+        # Le contenu dépasse
+        # ----------------------------------------------------
+
+        else:
+
+            if not self.result_scrollbar.winfo_ismapped():
+
+                self.result_scrollbar.pack(
+                    side="right",
+                    fill="y"
+                )
+
+
+    # ========================================================
+    # ÉCRIRE DANS LE RÉSULTAT
+    # ========================================================
+
+    def update_result(
+        self,
+        text,
+        color=None,
+        follow_end=True
+    ):
+
+        if color is None:
+            color = TEXT
+
+
+        # Autorise temporairement l'écriture
+        self.result_text.config(
+            state="normal"
+        )
+
+
+        self.result_text.delete(
+            "1.0",
+            "end"
+        )
+
+
+        self.result_text.insert(
+            "1.0",
+            text
+        )
+
+
+        self.result_text.config(
+            fg=color
+        )
+
+
+        # Lecture seule
+        self.result_text.config(
+            state="disabled"
+        )
+
+
+        # Pendant l'animation,
+        # suit automatiquement le texte.
+        if follow_end:
+
+            self.result_text.see(
+                "end"
+            )
 
 
     # ========================================================
@@ -248,16 +508,18 @@ class CipherTerminal:
         if self.animation_running:
             return
 
+
         encrypted = self.input_text.get(
             "1.0",
             "end-1c"
         )
 
+
         if not encrypted.strip():
 
             messagebox.showwarning(
-                "NO DATA",
-                "Aucun message détecté."
+                "Petit oubli",
+                "Il faut d'abord coller le message 👀"
             )
 
             return
@@ -269,23 +531,32 @@ class CipherTerminal:
         )
 
 
+        self.final_message = decrypted
+
+        self.message_hidden = False
+
         self.animation_running = True
 
 
-        self.result_text.delete(
-            "1.0",
-            "end"
+        # Cache le bouton pendant le nouveau déchiffrement
+        self.visibility_button.pack_forget()
+
+
+        # Efface l'ancien résultat
+        self.displayed_text = ""
+
+        self.update_result(
+            ""
         )
 
 
-        self.status.config(
-            text="ANALYZING ENCRYPTED DATA...",
-            fg=SECONDARY
-        )
+        # Remet le champ du haut au début
+        self.input_text.yview_moveto(0)
 
 
+        # Commence l'animation
         self.root.after(
-            600,
+            300,
             lambda: self.fake_key_scan(
                 encrypted,
                 decrypted,
@@ -295,7 +566,7 @@ class CipherTerminal:
 
 
     # ========================================================
-    # TEST DES CLÉS
+    # FAUX TEST DES CLÉS
     # ========================================================
 
     def fake_key_scan(
@@ -307,22 +578,14 @@ class CipherTerminal:
 
         if attempt < CAESAR_KEY:
 
-            self.status.config(
-                text=f"TESTING DECRYPTION KEY [{attempt}]..."
-            )
-
-
             fake_text = caesar_decrypt(
                 encrypted,
                 attempt
             )
 
 
-            preview = fake_text[:80]
-
-
             self.set_result(
-                preview
+                fake_text
             )
 
 
@@ -338,20 +601,15 @@ class CipherTerminal:
 
         else:
 
-            self.status.config(
-                text=f"KEY [{CAESAR_KEY}] ACCEPTED // DECRYPTING...",
-                fg=GREEN
-            )
+            self.displayed_text = ""
 
-
-            self.result_text.delete(
-                "1.0",
-                "end"
+            self.update_result(
+                ""
             )
 
 
             self.root.after(
-                500,
+                350,
                 lambda: self.reveal_message(
                     decrypted,
                     0
@@ -360,7 +618,7 @@ class CipherTerminal:
 
 
     # ========================================================
-    # ANIMATION DU MESSAGE
+    # RÉVÉLATION PROGRESSIVE
     # ========================================================
 
     def reveal_message(
@@ -369,20 +627,45 @@ class CipherTerminal:
         index
     ):
 
+        # ----------------------------------------------------
+        # MESSAGE ENTIÈREMENT DÉVOILÉ
+        # ----------------------------------------------------
+
         if index >= len(message):
 
-            self.status.config(
-                text="DECRYPTION COMPLETE // MESSAGE VERIFIED",
-                fg=GREEN
+            self.animation_running = False
+
+            self.final_message = message
+
+            self.message_hidden = False
+
+
+            # Bouton cacher
+            self.visibility_button.config(
+                text="🙈  Cacher le message"
             )
 
-            self.animation_running = False
+
+            self.visibility_button.pack(
+                pady=(0, 12),
+                before=self.result_container
+            )
+
+
+            # Une fois le déchiffrement terminé,
+            # on revient au début du message.
+            self.result_text.yview_moveto(0)
+
 
             return
 
 
         char = message[index]
 
+
+        # ----------------------------------------------------
+        # ANIMATION DES LETTRES
+        # ----------------------------------------------------
 
         if char.isalpha() and char.isascii():
 
@@ -391,14 +674,11 @@ class CipherTerminal:
             )
 
 
-            self.result_text.insert(
-                "end",
-                random_char
-            )
+            self.displayed_text += random_char
 
 
-            self.result_text.see(
-                "end"
+            self.update_result(
+                self.displayed_text
             )
 
 
@@ -414,9 +694,11 @@ class CipherTerminal:
 
         else:
 
-            self.result_text.insert(
-                "end",
-                char
+            self.displayed_text += char
+
+
+            self.update_result(
+                self.displayed_text
             )
 
 
@@ -430,7 +712,7 @@ class CipherTerminal:
 
 
     # ========================================================
-    # REMPLACEMENT CARACTÈRE
+    # REMPLACEMENT DE LA LETTRE ALÉATOIRE
     # ========================================================
 
     def replace_last_char(
@@ -440,20 +722,16 @@ class CipherTerminal:
         index
     ):
 
-        self.result_text.delete(
-            "end-2c",
-            "end-1c"
-        )
+        if self.displayed_text:
+
+            self.displayed_text = (
+                self.displayed_text[:-1]
+                + real_char
+            )
 
 
-        self.result_text.insert(
-            "end",
-            real_char
-        )
-
-
-        self.result_text.see(
-            "end"
+        self.update_result(
+            self.displayed_text
         )
 
 
@@ -467,7 +745,82 @@ class CipherTerminal:
 
 
     # ========================================================
-    # UTILITAIRE
+    # CACHER / REVOIR LE MESSAGE
+    # ========================================================
+
+    def toggle_message_visibility(self):
+
+        if not self.final_message:
+            return
+
+
+        # ----------------------------------------------------
+        # CACHER
+        # ----------------------------------------------------
+
+        if not self.message_hidden:
+
+            self.message_hidden = True
+
+            hidden_text = ""
+
+
+            for char in self.final_message:
+
+                if char == " ":
+
+                    hidden_text += " "
+
+                elif char == "\n":
+
+                    hidden_text += "\n"
+
+                else:
+
+                    hidden_text += "•"
+
+
+            self.update_result(
+                hidden_text,
+                SECONDARY,
+                follow_end=False
+            )
+
+
+            self.visibility_button.config(
+                text="👀  Revoir le message"
+            )
+
+
+            self.result_text.yview_moveto(0)
+
+
+        # ----------------------------------------------------
+        # REVOIR
+        # ----------------------------------------------------
+
+        else:
+
+            self.message_hidden = False
+
+
+            self.update_result(
+                self.final_message,
+                TEXT,
+                follow_end=False
+            )
+
+
+            self.visibility_button.config(
+                text="🙈  Cacher le message"
+            )
+
+
+            self.result_text.yview_moveto(0)
+
+
+    # ========================================================
+    # MODIFICATION DU TEXTE AFFICHÉ
     # ========================================================
 
     def set_result(
@@ -475,14 +828,12 @@ class CipherTerminal:
         text
     ):
 
-        self.result_text.delete(
-            "1.0",
-            "end"
-        )
+        self.displayed_text = text
 
-        self.result_text.insert(
-            "1.0",
-            text
+
+        self.update_result(
+            text,
+            TEXT
         )
 
 
@@ -494,6 +845,6 @@ if __name__ == "__main__":
 
     root = tk.Tk()
 
-    app = CipherTerminal(root)
+    app = SecretMessageApp(root)
 
     root.mainloop()
